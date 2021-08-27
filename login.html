@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>PWP Coach Dashboard</title>
+    <meta name="viewport"
+        content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+        <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+        <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/bower_components/font-awesome/css/font-awesome.min.css">
+        <link rel="stylesheet" href="/bower_components/Ionicons/css/ionicons.min.css">
+        <link rel="stylesheet" href="/dist/css/AdminLTE.min.css">
+        <link rel="stylesheet" href="/plugins/iCheck/square/blue.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
+        <script type="text/javascript" src="/plugins/angular/angular.js"></script>
+        <script src="app/app.js"></script>
+  <script type="text/javascript">
+     // CORE_URL = "https://www.fitterfly.com";
+     CORE_ENV = "www"
+    
+        var app = angular.module('app', []);
+        app.controller("loginCtrl", function ($scope, $http, $timeout, $location) {
+            $scope.showLoginForm = true;
+            $scope.showForgetPasswordForm = false;
+            $scope.showForgetPasswordFormSuccessMsg = false;
+            $scope.showResetPasswordForm = false;
+            $scope.showPickProgram = false;
+            $scope.resetAccountFor = "";
+            $scope.browserPopUp = false;
+
+            $scope.loginForm = {
+                userName: "",
+                passWord: "",
+                forgetPasswordEmail: "",
+                newPassword: "",
+                reTypePassword: "",
+                loader: false,
+                errorMsg: "",
+                // selectedProgram: '',
+                login: function () {
+                    if (this.userName && this.passWord) {
+                        this.loader = true;
+                        this.errorMsg = "";
+                        var data = {
+                            email: this.userName,
+                            password: this.passWord,
+                            interfaceType: AppConstants.interfaceType,
+                            coreEnv: CORE_ENV
+                        };
+
+                        $http.post('https://www.fitterfly.com/pwp/user/login', data).then(function (result) {
+                            if (result.data.status == "success") {
+                                var localObj = angular.copy(window.localStorage);
+                                window.localStorage.clear();
+
+                                if (localObj.patientSearch && localObj.patientSearch != "undefined") {
+                                    window.localStorage.setItem('patientSearch', localObj.patientSearch);
+                                }
+                                if (localObj.referralSearch && localObj.referralSearch != "undefined") {
+                                    window.localStorage.setItem('referralSearch', localObj.referralSearch);
+                                }
+
+                                $timeout(function () {
+                                    //window.localStorage.nplus_user = JSON.stringify(result.contents);
+                                    window.localStorage.userDetails = JSON.stringify(result.data.contents.userDetails);
+                                    window.localStorage.sessionToken = result.data.contents.sessionToken;
+                                    window.localStorage.lastActiveAt = result.data.contents.lastActiveAt;
+                                    window.location.href = "./index2.html";
+                                }, 1000);
+
+                            }else if (result.data.status == "error") {
+                                $scope.loginForm.errorMsg = result.data.message;
+
+                            }else{
+                                $scope.loginForm.errorMsg = "Error while login";
+                            }
+
+                            $scope.loginForm.loader = false;
+
+                        }, function (error) {
+                            if(error.status==-1){
+                                $scope.loginForm.errorMsg="Unable to connect with server. Please connect with Tech Support Team for more details"
+                            }else{
+                                $scope.loginForm.errorMsg = error;
+                            }
+                            console.log(error);
+                            $scope.loginForm.loader = false;
+
+                        });
+                    } else {
+                        if (!this.userName && !this.passWord) { // TODO: proper email validation required
+                            $scope.loginForm.errorMsg = "Please enter Email and Password"
+                        } else if (this.userName && !this.passWord) {
+                            $scope.loginForm.errorMsg = "Please enter Password";
+                        } else if (!this.userName && this.passWord) {
+                            $scope.loginForm.errorMsg = "Please enter Email"
+                        }
+                    }
+                },
+          };
+            $scope.loginInitiate = function () {
+                $scope.showResetPasswordForm = false;
+                $scope.showForgetPasswordForm = false;
+                $scope.showForgetPasswordFormSuccessMsg = false;
+                $scope.showLoginForm = true;
+                $scope.loginForm.loader = false;
+                $scope.loginForm.userName = "";
+                $scope.loginForm.passWord = "";
+            }
+         });
+    </script>
+</head>
+
+<body ng-app="app" ng-controller="loginCtrl">
+    <div class="login-page">
+        <div class="login-popup" ng-if="showLoginForm">
+            <div class="popup-card">
+                <div class="popup-pad">
+                    <form ng-submit="loginForm.login()" class="form">
+                        <div class="login-name">
+                            <div class="login-form">
+                                <div class="form-field-group">
+                                    <input type="text" class="input" name="username" ng-model="loginForm.userName">
+                                    <div for="Username" class="label active">Email</div>
+                                </div>
+
+                                <div class="form-field-group">
+                                    <input type="password" class="input" name="password" ng-model="loginForm.passWord">
+                                    <div for="password" class="label active">Password</div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="login-btn">
+                            <button class="btn mb20" type="submit" ng-if="!loginForm.loader">Login</button>
+                            <div class="btn mb20" ng-if="loginForm.loader">Loading...</div>
+                            <a href="" ng-click="forgetInitiate()">Forgot Password?</a>
+                        </div>
+                        <div class="{{loginForm.errorMsg ? 'login-field-error' : ''}}" ng-if="loginForm.errorMsg">
+                            {{ loginForm.errorMsg }}</div>
+                    </form>
+                </div>
+            </div>
+        </div>
+      
+    </div>
+
+    <style>
+        .custom-popup {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0 auto;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-dialog {
+            min-width: 400px;
+        }
+
+        .modal-content {
+            background: #FFFFFF;
+            box-shadow: 0 0 5px 2px rgba(92, 92, 92, 0.50);
+            border-radius: 10px;
+        }
+        .modal-dialog{
+            min-width:  auto;
+        }
+        .modal-body{
+            margin: 0 auto;
+            text-align: center;
+        }
+    </style>
+</body>
+
+</html>
